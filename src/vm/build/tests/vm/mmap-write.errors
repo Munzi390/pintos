@@ -1,0 +1,2 @@
+open /dev/kvm: No such file or directory
+Could not initialize KVM, will disable KVM support

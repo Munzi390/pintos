@@ -1,0 +1,30 @@
+#include "lib/kernel/list.h"
+#ifndef USERPROG_SYSCALL_H
+#define USERPROG_SYSCALL_H
+#include "filesys/off_t.h"
+
+struct lock filesys_lock;		/* lock for exclusive access to file system */
+
+
+void syscall_init (void);
+struct executable_file *find_file_executable(char *);
+
+struct file_info* find_file_info(int fd);
+void free_file(struct file_info * f_d);
+
+struct process_info* find_child(tid_t tid);
+
+int syscall_open(const char *file);
+void syscall_exit(int status);
+int syscall_wait(pid_t pid);
+pid_t syscall_exec (const char *file);
+int syscall_filesize(int fd);
+int syscall_create(const char *file,unsigned size);
+bool syscall_remove(const char *file);
+int syscall_read (int fd, void *buffer, unsigned size);
+int syscall_write (int fd, const void *buffer, unsigned size);
+void syscall_close(int fd);
+void syscall_seek(int fd, unsigned pos);
+off_t syscall_tell(int fd);
+
+#endif /* userprog/syscall.h */

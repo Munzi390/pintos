@@ -1,0 +1,23 @@
+#ifndef VM_FRAME_H
+#define VM_FRAME_H
+
+#include <stdint.h>
+
+struct list frame_table;
+struct lock frame_lock;
+
+struct fte{
+	unsigned int *frame;
+	struct pte *pte;
+
+	struct list_elem elem;
+
+};
+
+void
+frame_init(void);
+
+void
+frame_insert(struct fte *f_entry);
+
+#endif

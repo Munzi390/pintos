@@ -1,0 +1,24 @@
+#ifndef VM_PAGE_H
+#define VM_PAGE_H
+#include "filesys/off_t.h"
+#include <stdint.h>
+#include <hash.h>
+struct pte{
+	uint32_t *frame;
+	uint32_t *vaddr;
+
+	struct file *file;
+	off_t ofs;
+
+	struct hash_elem h_elem;
+};
+
+void page_init(struct hash page_table);
+struct pte * page_create(uint32_t *frame, uint32_t *vaddr, struct file *file, off_t ofs);
+void page_insert(struct pte *p_entry);
+void page_remove(struct pte *p_entry);
+void page_find(uint32_t *vaddr);
+unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
+bool page_less (const struct hash_elem *a_, const struct hash_elem *b_,void *aux UNUSED);
+
+#endif

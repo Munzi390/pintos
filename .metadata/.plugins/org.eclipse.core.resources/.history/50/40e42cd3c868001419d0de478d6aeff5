@@ -1,0 +1,12 @@
+#ifndef VM_SWAP_H
+#define VM_SWAP_H
+
+#include "devices/disk.h"
+
+#define PAGE_IN_DISK_SIZE (PGSIZE/DISK_SECTOR_SIZE)
+
+void swap_init(void);
+void swap_todisk(struct pte* pte);
+void swap_fromdisk();
+
+#endif

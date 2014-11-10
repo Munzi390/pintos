@@ -1,0 +1,12 @@
+#ifndef VM_PAGE_H
+#define VM_PAGE_H
+#include "filesys/off_t.h"
+
+struct pte{
+	unsigned int *frame;
+
+	struct file *file;
+	off_t ofs;
+};
+
+#endif

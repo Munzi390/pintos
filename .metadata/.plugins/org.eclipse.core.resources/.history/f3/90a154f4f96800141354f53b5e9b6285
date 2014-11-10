@@ -1,0 +1,12 @@
+#include "lib/kernel/list.h"
+#ifndef USERPROG_SYSCALL_H
+#define USERPROG_SYSCALL_H
+
+
+struct lock filesys_lock;		/* lock for exclusive access to file system */
+
+
+void syscall_init (void);
+struct executable_file *find_file_executable(char *);
+
+#endif /* userprog/syscall.h */

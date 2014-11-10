@@ -1,0 +1,15 @@
+#ifndef VM_FRAME_H
+#define VM_FRAME_H
+
+struct list frame_table;
+struct lock frame_lock;
+
+struct fte{
+	uint32_t *frame;
+	struct pte *pte;
+
+	struct list_elem elem;
+
+};
+
+#endif VM_FRAME_H

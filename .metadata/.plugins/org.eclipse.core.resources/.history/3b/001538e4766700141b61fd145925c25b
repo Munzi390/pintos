@@ -1,0 +1,11 @@
+#include "vm/page.h"
+
+void page_init(){
+	struct thread *t = thread_current();
+	hash_init(&t->page_table);
+
+}
+void page_create(uint32_t *frame, uint32_t *vaddr, struct file *file, off_t ofs);
+void page_insert(struct pte *p_entry);
+void page_remove(struct pte *p_entry);
+void page_find(uint32_t *vaddr);

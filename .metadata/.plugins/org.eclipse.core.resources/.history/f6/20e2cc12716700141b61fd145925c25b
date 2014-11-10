@@ -1,0 +1,14 @@
+#include "threads/thread.h"
+#include "vm/frame.h"
+#include <list.h>
+
+void
+frame_init(){
+	list_init(frame_table);
+	lock_init(&frame_lock);
+}
+
+void
+frame_insert(struct fte *f_entry){
+	list_insert(&frame_table,f_entry->elem);
+}

@@ -1,0 +1,311 @@
+		     +--------------------------+
+       	       	     |		CS 330		|
+		     | PROJECT 2: USER PROGRAMS	|
+		     | 	   DESIGN DOCUMENT     	|
+		     +--------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+유인재 myhome9830@kaist.ac.kr
+이현석 asdfghmn@kaist.ac.kr
+
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+String Tokenizing
+http://linux.die.net/man/3/strtok_r
+Kernel / Shell
+http://twinjh.tistory.com/12
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+Argument passing을 위해 따로 정의한 struct는 없다.
+
+
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+1. Argument를 string tokenizer를 통해 " " 기준으로 자른다.
+2. user stack pointer에서부터 argument array를
+   arguments -> align -> arguments address -> argc -> return address
+   순서로 stack에 쌓아주면 된다.
+이는 간단하게 pintos document를 참고하여 만들었다.
+
+
+
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+ strtok_r()은 strtok()의 reentrant 문제를 해결한, 즉 Synchronization 문제를 해결했다. 
+strtok()은 parsing할 때 static buffer를 이용하는데, 
+두 thread가 strtok()를 동시에 부를 때, 이 buffer가 corrupt할 수 있다.
+ 따라서 static variable을 공유하지 않는 strtok_r()함수를 이용해서 
+tokenizing한다.
+
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+1. Kernel 위에 Shell이 있고, 여기서 seperation을 하므로 kernel에 접근하기 전에
+   shell이 check를 하면 더 안전하다.
+2. user 입장에서는 복잡한 kernel에 대해서 알 필요 없이 shell의 interface를 이용하기만
+   하면 되므로 사용이 편하다.
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+In struct thread
+    struct thread* parent;              /* Parent Process */
+    uint32_t *pagedir;                  /* Page directory. */
+    struct list open_list;              /* Thread's Open File List */
+    struct list child_list;		/* Child List */
+
+    struct process_info *child;		/* addr of my process_info */
+    int execution;			/* execution=1 if child process execute */
+    struct semaphore exec_wait;		/* determine order of excution between parent-child */
+    struct file* process_file;		/* Thread running file */
+    int file_count;			/* count open file */
+
+struct process_info
+  {
+    pid_t pid;
+    struct semaphore wait;		/* for syscall_wait */
+    int exit_status;      		/* If child is fail to load */
+    struct thread *thread;		/* TCB */
+    int already_exited;			/* if exited */
+    struct list_elem elem;		/* when exec called, this connects parent with child */
+  };
+
+struct file_info{
+	int fd; 			/* file discripter num */
+	struct file *file; 		/* pointer of opend file */
+	struct list_elem elem; 		/* list handler of fd_list of process */
+};
+
+lock filesys_lock 			/* lock for control synchronization of using file system */
+
+
+
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+새로 정의한 struct file_info를 통해 open file을 관리할 수 있다. 
+syscall_open()을 통해 file_open()을 부르며, 이를 새로운 file_info structure가
+가르킨다. 해당 file_info structure가 file descriptor를 갖고 있고,
+syscall_open()을 호출한 프로세스가 이 file_info를 list로 관리하고 있다.
+따라서 fd를 통해 open_list를 검색해서 해당 파일에 접근할 수 있고,
+syscall_close()시에도 마찬가지로 접근해서 free 해줄 수 있다.
+
+우리는 파일 접근을 해당 프로세스만 할 수 있기 때문에, 각 프로세스 내에서만
+unique하게 fd를 부여했다.
+
+
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+syscall_handler 함수를 보면 알 수 있다.
+1. 해당 interrupt frame의 esp를 가져와 valid한지 확인한다.
+   valid_esp(f->esp);
+2. 해당 esp의 값을 통해 어떤 system call을 할 지 알아낸다. (read인지 write인지)
+   uint32_t sysnum = *((int *)f->esp);
+3. interrupt frame의 stack에서 argument를 찾고 valid한지 확인한다..
+   valid_esp(f->esp+4);
+   valid_esp(f->esp+8);  
+   valid_esp(f->esp+12);
+4. 해당 argument를 가지고 syscall_read() / syscall_write()를 실행하고, frame의 eax에 저장한다.
+   f->eax = syscall_read(*(int *)(f->esp+4),*(char **)(f->esp+8),*(unsigned *)(f->esp+12));
+   (or syscall_write)
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+   page inspection은 각 page마다 일어나기 때문에 해당 data가 어떤 page에 존재하는지가 중요하다.
+   2byte/4096byte 모두 1 page 안에 존재할 수 있기 때문에 최소 1 page만 검사할 수도 있지만
+   그 이상의 page에 분포된 data라면 더 많이 검사할 수도 있다.
+
+
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+ Semaphore를 통해 비교적 간단하게 wait할 수 있다.
+wait system call은 process_wait()함수를 부르게 된다.
+1. 해당 pid를 갖는 child process가 있는지 찾는다.
+2. child_process의 semaphore wait을 down하도록 시도한다.
+   sema_down(&child->wait); 
+3. 따라서 semaphore에 의해 해당 child->wait값이 변하기를 기다리는데,
+   이는 child process가 exit할 때 바뀌게 된다.
+4. critical section에 들어왔다는 것은 child process가 끝났다는 의미이므로
+   해당 process_info를 list에서 뺀다.
+
+
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+syscall에서 받은 f->esp+x 변수들을 함수에 넣기 전에 먼저 bad pointer checker을 통해
+체크한 후 실행한다.
+Write 및 Read 콜은 읽거나 쓸 각 바이트를 각각 포인터 계산을 통해 validity를 확인한 후
+쓴다.
+만약 segmentation fault를 감지하면 exception.c의 page_fault()에서 바로 
+sys_exit(-1)을 부른다.
+exit이 불리면 바로 thread_exit, schedule tail에서 resource 들을 free한다.
+
+
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+마찬가지로 semaphore를 통해 loading 하는 것을 기다리게 된다.
+syscall_exec()에서 아래와 같이 순서를 정한다.
+
+  int child_pid = (pid_t)process_execute(file);
+  sema_down(&thread_current()->exec_wait);
+
+해당 thread_current()->exec_wait는 start_process()에서 
+load()가 끝난 후에 sema_up()이 될 수 있으므로, load() 된 이후에야
+return할 수 있다. success/failure는 struct thread의 execution을
+통해 알 수 있다.
+
+
+
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+P->wait(C)->C terminate :
+Child 프로세스를 execute할 때 child structure 내에 wait semaphore을 initialize하고,
+wait call이 불리면 parent가 sema_down을 부른 뒤, child가 종료되고 child의 스트럭쳐가 
+schedule_tail에 진입하면 그 때 child thread가 포인팅하는 child structure 의 wait semaphore을 다시
+sema_up해준다. 
+
+P->C terminate ->wait() : child process가 먼저 끝난 경우 이미 child structure을 찾을 수 없으므로
+바로 return -1을 한다. 따라서 seamphore을 up or down 작업을 하지 않는다.
+
+모든 resource free를 thread.c의 schedule tail, 즉 thread structure 자체를 palloc_free할 때 child structure 및
+file info stucture 등을 모두 free하므로 resource는 모두 잘 free된다.
+
+P가 C보다 먼저 꺼지는 경우는 handle할 필요가 없다. Parent는 wait 콜이 불리지 않는 이상 child의 start process 과정까지만
+기다릴 의무가 있다.
+
+
+
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+user memory에 접근하기 위해서, 해당 pointer가 valid한지 미리 체크한다.
+vaddr.c에 있는 is_user_vaddr()를 이용하면서 미리 체크하므로
+kernel의 안정성을 더 높일 수 있다.
+
+
+
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+advantage
+  file decriptor가 thread에 속해있다. 따라서 접근하면 안되는 thread에서 
+접근할 수 있는 방법이 없다. 또한 file를 찾을 때, 전체 file list에서 찾을 필요가 없고
+해당 thread가 open한 file에서만 검색하면 되서 속도가 빠르다.
+disadvantage
+  Kernel이 파일을 직접 관리하는 것이 아니라 user process가 각각 관리하기 때문에
+직관성이 떨어진다. 예를들어 thread가 끝날 때 memory free이 잘못되면 
+해당 메모리를 낭비하는데, 이를 kernel이 직접 free할 수 없다.
+ 또한 각 process가 file list를 따로 관리해야 하므로 메모리적으로 불리하다.
+
+
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+Pintos Document에 따르면 tid는 kernel thread를 위해서, pid는 user process로
+기존의 identity mapping을 non-identity mapping으로 바꾼다면 
+thread mapping에서 1:1 mapping 뿐 아니라 N:1,M:N mapping도 구현할 수 있습니다.
+
+
+
+
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Any other comments?

@@ -1,0 +1,17 @@
+#include "vm/swap.h"
+
+
+
+void swap_init(void){
+
+}
+
+void swap_todisk(struct pte* pte){
+	;
+}
+
+
+void swap_fromdisk(struct pte* pte, uint8_t* kpage){
+	;
+}
+

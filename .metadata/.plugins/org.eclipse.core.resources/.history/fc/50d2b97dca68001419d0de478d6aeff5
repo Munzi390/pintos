@@ -1,0 +1,57 @@
+#include "vm/swap.h"
+
+
+
+void swap_init(void){
+	struct disk* disk = disk_get(1,1); //(1,1) is for swap
+	swap_disk = bitmap_create(disk_size(disk),PAGE_IN_DISK_SIZE);
+
+}
+
+void swap_todisk(struct pte* pte){
+	  if (p->type == NORMAL)
+		{
+		  int i;
+		  struct disk *d = disk_get (SWAP_CH, SWAP_DEV);
+		  ASSERT (d);
+
+		  /* Find empty swap location. */
+		  disk_sector_t swap_sec = bitmap_scan_and_flip (bitmap_swap, 0, 1, false);
+		  ASSERT (swap_sec != BITMAP_ERROR);
+
+		  swap_sec *= SECTOR_PER_PAGE;
+
+		  /* Mark swap location. */
+		  p->swap_sec = swap_sec;
+
+		  /* Write page to swap disk. */
+		  for (i = 0; i < SECTOR_PER_PAGE; i++)
+			disk_write (d, swap_sec++, p->kpage + i * DISK_SECTOR_SIZE);
+	    }
+	  else if (p->type == FILE)
+		{
+		  off_t old_ofs;
+		  struct thread *t = thread_current ();
+
+		  ASSERT (p->file != NULL);
+
+		  /* Write page contents to file only when it is modified. */
+		  if (pagedir_is_dirty (t->pagedir, p->upage))
+			{
+			  old_ofs = file_tell (p->file);
+			  file_seek (p->file, p->ofs);
+			  file_write (p->file, p->kpage, p->size);
+			  file_seek (p->file, old_ofs);
+		    }
+		}
+
+	  /* Change location. */
+	  p->location = DISK;
+
+}
+
+
+void swap_fromdisk(struct pte* pte, uint8_t* kpage){
+	;
+}
+

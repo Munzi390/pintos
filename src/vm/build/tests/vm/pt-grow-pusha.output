@@ -1,0 +1,29 @@
+Copying tests/vm/pt-grow-pusha into /tmp/BIY7f1yHFx.dsk...
+Writing command line to /tmp/Sj9h1cEmwX.dsk...
+qemu -hda /tmp/Sj9h1cEmwX.dsk -hdb /tmp/mj87IzoeAV.dsk -hdc /tmp/BIY7f1yHFx.dsk -hdd /tmp/1bOeD2Y6jO.dsk -m 4 -net none -nographic -monitor null
+Kernel command line: -q -f put pt-grow-pusha run pt-grow-pusha
+Pintos booting with 4,096 kB RAM...
+374 pages available in kernel pool.
+374 pages available in user pool.
+Calibrating timer...  104,755,200 loops/s.
+hd0:0: detected 137 sector (68 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 4,032 sector (1 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 70 sector (35 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+hd1:1: detected 8,064 sector (3 MB) disk, model "QEMU HARDDISK", serial "QM00004"
+Formatting file system...done.
+Boot complete.
+Putting 'pt-grow-pusha' into the file system...
+Executing 'pt-grow-pusha':
+(pt-grow-pusha) begin
+pt-grow-pusha: exit(-1)
+Execution of 'pt-grow-pusha' complete.
+Timer: 59 ticks
+Thread: 31 idle ticks, 27 kernel ticks, 1 user ticks
+hd0:0: 0 reads, 0 writes
+hd0:1: 58 reads, 148 writes
+hd1:0: 70 reads, 0 writes
+hd1:1: 0 reads, 0 writes
+Console: 916 characters output
+Keyboard: 0 keys pressed
+Exception: 1 page faults
+Powering off...
